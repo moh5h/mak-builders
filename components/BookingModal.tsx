@@ -1,12 +1,13 @@
 'use client';
 
-import { FormEvent, MouseEvent, useEffect, useMemo, useState } from 'react';
-import { CheckCircle2, Loader2, X } from 'lucide-react';
+import { FormEvent, MouseEvent, useEffect, useState } from 'react';
+import { CheckCircle2, X } from 'lucide-react';
+
+const WHATSAPP_NUMBER = '96171488475';
 
 export default function BookingModal({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const [status, setStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
+  const [status, setStatus] = useState<'idle' | 'success'>('idle');
   const [message, setMessage] = useState('');
-  const startedAt = useMemo(() => Date.now(), [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -22,34 +23,33 @@ export default function BookingModal({ open, onClose }: { open: boolean; onClose
     try { e.currentTarget.showPicker(); } catch { /* unsupported browser: falls back to typing */ }
   }
 
-  async function submit(e: FormEvent<HTMLFormElement>) {
+  // Opens WhatsApp with the booking pre-written; the visitor just taps Send.
+  // window.open must run synchronously in the submit handler or popup blockers stop it.
+  function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setStatus('sending');
-    setMessage('');
     const form = e.currentTarget;
-    const data = Object.fromEntries(new FormData(form).entries());
+    const d = Object.fromEntries(new FormData(form).entries()) as Record<string, string>;
+    if (d.website) return;
 
-    try {
-      const res = await fetch('/api/book', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...data, startedAt, page: window.location.href }),
-      });
-      const result = await res.json();
-      if (!res.ok) throw new Error(result.error || 'Booking could not be sent.');
-      form.reset();
-      setStatus('success');
-      setMessage(
-        result.whatsappSent && result.emailSent
-          ? 'Your request was delivered to MAK Builders by email and WhatsApp.'
-          : result.emailSent
-            ? 'Your request was delivered by email. WhatsApp delivery could not be confirmed.'
-            : 'Your request was received.'
-      );
-    } catch (err) {
-      setStatus('error');
-      setMessage(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
-    }
+    const text = [
+      '*New MAK Builders booking*',
+      '',
+      `*Name:* ${d.name}`,
+      `*Company:* ${d.company}`,
+      `*Email:* ${d.email}`,
+      `*Phone / WhatsApp:* ${d.phone}`,
+      `*Project:* ${d.projectType}`,
+      `*Preferred:* ${d.date} at ${d.time}`,
+      '',
+      '*Explain more:*',
+      d.explainMore,
+      ...(d.notes?.trim() ? ['', '*Additional notes:*', d.notes] : []),
+    ].join('\n');
+
+    window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(text)}`, '_blank', 'noopener');
+    form.reset();
+    setStatus('success');
+    setMessage('WhatsApp opened with your request. Tap Send in WhatsApp to deliver it to MAK Builders.');
   }
 
   return (
@@ -59,8 +59,8 @@ export default function BookingModal({ open, onClose }: { open: boolean; onClose
         {status === 'success' ? (
           <div className="success-state">
             <div className="success-icon"><CheckCircle2 size={34} /></div>
-            <span className="section-kicker">REQUEST RECEIVED</span>
-            <h2 id="booking-title">Meeting request sent.</h2>
+            <span className="section-kicker">ALMOST DONE</span>
+            <h2 id="booking-title">Finish in WhatsApp.</h2>
             <p>{message}</p>
             <button className="btn primary" onClick={onClose}>Close</button>
           </div>
@@ -69,7 +69,7 @@ export default function BookingModal({ open, onClose }: { open: boolean; onClose
             <div className="booking-heading">
               <span className="section-kicker">BOOK A WORKING SESSION</span>
               <h2 id="booking-title">Tell us what you’re trying to build.</h2>
-              <p>Give us enough context to make the first conversation useful. Your request is sent directly to the MAK Builders team.</p>
+              <p>Give us enough context to make the first conversation useful. Your request opens in WhatsApp, addressed directly to the MAK Builders team.</p>
             </div>
             <form className="booking-form" onSubmit={submit}>
               <input className="hp-field" type="text" name="website" tabIndex={-1} autoComplete="off" aria-hidden="true" />
@@ -93,12 +93,9 @@ export default function BookingModal({ open, onClose }: { open: boolean; onClose
               <label><span>Preferred time</span><input name="time" type="time" onClick={openPicker} required /></label>
               <label className="wide"><span>Explain more</span><textarea name="explainMore" required rows={6} placeholder="Describe the problem, current workflow, what you want to improve, and what a successful outcome would look like." /></label>
               <label className="wide"><span>Additional notes <em>optional</em></span><textarea name="notes" rows={3} placeholder="Anything else we should know before the meeting?" /></label>
-              {status === 'error' && <div className="form-error wide">{message}</div>}
               <div className="booking-actions wide">
-                <span>Secure server-side notification · Email + WhatsApp</span>
-                <button className="btn primary" disabled={status === 'sending'} type="submit">
-                  {status === 'sending' ? <><Loader2 className="spin" size={17} /> Sending</> : 'Send meeting request'}
-                </button>
+                <span>Opens WhatsApp with your request ready to send</span>
+                <button className="btn primary" type="submit">Send via WhatsApp</button>
               </div>
             </form>
           </>
