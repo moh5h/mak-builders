@@ -29,6 +29,8 @@ body {
   overflow-x: hidden;
 }
 button, input, textarea, select { font: inherit; }
+input[type="date"], input[type="time"] { color-scheme: dark; cursor: pointer; }
+input[type="date"]::-webkit-calendar-picker-indicator, input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; opacity: .85; }
 button, a { -webkit-tap-highlight-color: transparent; }
 a { color: inherit; text-decoration: none; }
 button { color: inherit; }

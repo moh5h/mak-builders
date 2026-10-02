@@ -39,11 +39,19 @@ export function formatBookingText(b: BookingPayload) {
   ].join('\n');
 }
 
+// Only RESEND_API_KEY is required. Without a verified domain, Resend's test sender
+// (onboarding@resend.dev) can deliver only to the email that owns the Resend account.
+function emailConfig() {
+  return {
+    apiKey: process.env.RESEND_API_KEY,
+    from: process.env.RESEND_FROM_EMAIL || 'MAK Builders <onboarding@resend.dev>',
+    to: process.env.BOOKING_NOTIFY_EMAIL || 'shaabanmohammad302@gmail.com',
+  };
+}
+
 export async function sendBookingEmail(b: BookingPayload) {
-  const apiKey = process.env.RESEND_API_KEY;
-  const from = process.env.RESEND_FROM_EMAIL;
-  const to = process.env.BOOKING_NOTIFY_EMAIL;
-  if (!apiKey || !from || !to) return { sent: false, reason: 'Email is not configured.' };
+  const { apiKey, from, to } = emailConfig();
+  if (!apiKey) return { sent: false, reason: 'RESEND_API_KEY is not set.' };
 
   const html = `
     <div style="font-family:Arial,sans-serif;background:#071018;color:#eaf8ff;padding:32px;line-height:1.55">
@@ -120,10 +128,8 @@ export async function sendBookingWhatsApp(b: BookingPayload) {
 }
 
 export async function sendSupportEmail(data: { email: string; company: string; category: string; message: string }) {
-  const apiKey = process.env.RESEND_API_KEY;
-  const from = process.env.RESEND_FROM_EMAIL;
-  const to = process.env.BOOKING_NOTIFY_EMAIL;
-  if (!apiKey || !from || !to) return { sent: false };
+  const { apiKey, from, to } = emailConfig();
+  if (!apiKey) return { sent: false };
   const response = await fetch('https://api.resend.com/emails', {
     method: 'POST', headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ from, to: [to], reply_to: data.email, subject: `MAK support — ${data.category} — ${data.company}`, text: `Company: ${data.company}\nEmail: ${data.email}\nCategory: ${data.category}\n\n${data.message}` }),

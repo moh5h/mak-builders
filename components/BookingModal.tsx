@@ -1,6 +1,6 @@
 'use client';
 
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { FormEvent, MouseEvent, useEffect, useMemo, useState } from 'react';
 import { CheckCircle2, Loader2, X } from 'lucide-react';
 
 export default function BookingModal({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -17,6 +17,10 @@ export default function BookingModal({ open, onClose }: { open: boolean; onClose
   }, [open]);
 
   if (!open) return null;
+
+  function openPicker(e: MouseEvent<HTMLInputElement>) {
+    try { e.currentTarget.showPicker(); } catch { /* unsupported browser: falls back to typing */ }
+  }
 
   async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -85,8 +89,8 @@ export default function BookingModal({ open, onClose }: { open: boolean; onClose
                   <option>Other / not sure yet</option>
                 </select>
               </label>
-              <label><span>Preferred date</span><input name="date" type="date" min={new Date().toISOString().slice(0, 10)} required /></label>
-              <label><span>Preferred time</span><input name="time" type="time" required /></label>
+              <label><span>Preferred date</span><input name="date" type="date" min={new Date().toISOString().slice(0, 10)} onClick={openPicker} required /></label>
+              <label><span>Preferred time</span><input name="time" type="time" onClick={openPicker} required /></label>
               <label className="wide"><span>Explain more</span><textarea name="explainMore" required rows={6} placeholder="Describe the problem, current workflow, what you want to improve, and what a successful outcome would look like." /></label>
               <label className="wide"><span>Additional notes <em>optional</em></span><textarea name="notes" rows={3} placeholder="Anything else we should know before the meeting?" /></label>
               {status === 'error' && <div className="form-error wide">{message}</div>}
